@@ -9,6 +9,7 @@ namespace MazeGenLib
         private int _colNumber;
 
         MazeDirection[,] maze;
+        Stack<Cell> _backtrackStack;
 
         private static Random _r = new Random();
 
@@ -28,7 +29,7 @@ namespace MazeGenLib
         public MazeDirection[,] PrepareMaze()
         {
             getEmptyBoard();
-            (int row, int col) entry = getRandomEntryPoint();
+            Cell entry = getRandomEntryPoint();
 
             var res = TryMakePassage(entry);
 
@@ -38,30 +39,39 @@ namespace MazeGenLib
             return null;
         }
 
-        private bool TryMakePassage((int row, int col) cell)
+        private bool TryMakePassage(Cell cell)
         {
-            if (!checkIfHasEmptyBoard())
-                return true;
+            _backtrackStack = new Stack<Cell>();
+            _backtrackStack.Push(cell);
+
+            Cell cCell = cell;
 
             while (true)
             {
-                var availableDirections = getAvailableDirections(cell);
-                if (availableDirections.Count == 0) return false;
+                if (!checkIfHasEmptyBoard())
+                    return true;
+
+                var availableDirections = getAvailableDirections(cCell);
+                if (availableDirections.Count == 0)
+                {
+                    if (_backtrackStack.TryPop(out cCell))
+                        continue;
+                    else
+                        return false;
+                }
 
                 MazeDirection direction = availableDirections[_r.Next(availableDirections.Count)];
-                var nextPosition = SetMaze(cell, direction);
+                cCell = PickMazeCell(cCell, direction);
 
                 availableDirections.Remove(direction);
-                var res = TryMakePassage(nextPosition);
 
-                if (res)
-                    return true;
+                _backtrackStack.Push(cCell);
             }
         }
 
-        private (int row, int col) SetMaze((int row, int col) cell, MazeDirection direction)
+        private Cell PickMazeCell(Cell cell, MazeDirection direction)
         {
-            (int row, int col) next;
+            Cell next;
 
             maze[cell.row, cell.col] |= direction;
             switch (direction)
@@ -69,25 +79,25 @@ namespace MazeGenLib
                 case (MazeDirection.Right):
                     {
                         maze[cell.row, cell.col + 1] |= MazeDirection.Left;
-                        next = (cell.row, cell.col + 1);
+                        next = new Cell(cell.row, cell.col + 1);
                         break;
                     }
                 case (MazeDirection.Left):
                     {
                         maze[cell.row, cell.col - 1] |= MazeDirection.Right;
-                        next = (cell.row, cell.col - 1);
+                        next = new Cell(cell.row, cell.col - 1);
                         break;
                     }
                 case (MazeDirection.Up):
                     {
                         maze[cell.row - 1, cell.col] |= MazeDirection.Down;
-                        next = (cell.row - 1, cell.col);
+                        next = new Cell(cell.row - 1, cell.col);
                         break;
                     }
                 case (MazeDirection.Down):
                     {
                         maze[cell.row + 1, cell.col] |= MazeDirection.Up;
-                        next = (cell.row + 1, cell.col);
+                        next = new Cell(cell.row + 1, cell.col);
                         break;
                     }
                 default:
@@ -97,7 +107,12 @@ namespace MazeGenLib
             return next;
         }
 
-        private List<MazeDirection> getAvailableDirections((int row, int col) cell)
+        /// <summary>
+        /// Assigns directions
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns></returns>
+        private List<MazeDirection> getAvailableDirections(Cell cell)
         {
             var directions = new List<MazeDirection>();
 
@@ -131,9 +146,9 @@ namespace MazeGenLib
         /// Gets random entry point
         /// </summary>
         /// <returns></returns>
-        private (int row, int col) getRandomEntryPoint()
+        private Cell getRandomEntryPoint()
         {
-            return (0, 0); // randomize this
+            return new Cell(0, 0); // randomize this
         }
 
         /// <summary>

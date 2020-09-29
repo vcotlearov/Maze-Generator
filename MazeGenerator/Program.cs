@@ -1,5 +1,6 @@
 ﻿using MazeGenLib;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -7,49 +8,64 @@ namespace MazeGenerator
 {
     class Program
     {
-        static int rowNumber = 100, colNumber = 205;
+        static int rowNumber = 10000, colNumber = 10000;
         static void Main(string[] args)
         {
+            var timer = Stopwatch.StartNew();
             Maze maze = new Maze(rows: rowNumber, cols: colNumber);
             var d = maze.PrepareMaze();
-            DrawMaze(d, rowNumber, colNumber);
+            timer.Stop();
+
+            //DrawMaze(d, rowNumber, colNumber);
+            
+            Console.WriteLine($"All done. Your time: {timer.Elapsed}");
             Console.ReadKey();
         }
 
         private static void DrawMaze(MazeDirection[,] maze, int rows, int cols)
         {
-            char[,] textMaze = new char[rows * 3, cols * 3];
+            char[,] textMaze = new char[3, cols * 3];
 
-            for (int i = 0; i < rows; i++)
+            var path = Environment.CurrentDirectory + @"\maze.txt";
+            using (var stream = File.Create(path))
             {
-                for (int j = 0; j < cols; j++)
+                StringBuilder upperRow = new StringBuilder();
+                StringBuilder middleRow = new StringBuilder();
+                StringBuilder lowerRow = new StringBuilder();
+
+                for (int i = 0; i < rows; i++)
                 {
-                    var cell = maze[i, j];
-                    textMaze[i * 3, j * 3] = '#';
-                    textMaze[i * 3, j * 3 + 1] = cell.HasFlag(MazeDirection.Up) ? '-' : '#'; // UP
-                    textMaze[i * 3, j * 3 + 2] = '#';
+                    for (int j = 0; j < cols; j++)
+                    {
+                        var cell = maze[i, j];
 
-                    textMaze[i * 3 + 1, j * 3] = cell.HasFlag(MazeDirection.Left) ? '-' : '#'; // LEFT
-                    textMaze[i * 3 + 1, j * 3 + 1] = '-';
-                    textMaze[i * 3 + 1, j * 3 + 2] = cell.HasFlag(MazeDirection.Right) ? '-' : '#'; // RIGHT
+                        upperRow.Append('#');
+                        upperRow.Append(cell.HasFlag(MazeDirection.Up) ? '-' : '#');
+                        upperRow.Append('#');
 
-                    textMaze[i * 3 + 2, j * 3] = '#';
-                    textMaze[i * 3 + 2, j * 3 + 1] = cell.HasFlag(MazeDirection.Down) ? '-' : '#'; // DOWN
-                    textMaze[i * 3 + 2, j * 3 + 2] = '#';
+                        middleRow.Append(cell.HasFlag(MazeDirection.Left) ? '-' : '#');
+                        middleRow.Append('-');
+                        middleRow.Append(cell.HasFlag(MazeDirection.Right) ? '-' : '#');
+
+                        lowerRow.Append('#');
+                        lowerRow.Append(cell.HasFlag(MazeDirection.Down) ? '-' : '#');
+                        lowerRow.Append('#');
+                    }
+
+                    Byte[] text = new UTF8Encoding(true).GetBytes(upperRow.AppendLine().ToString());
+                    stream.Write(text, 0, text.Length);
+
+                    text = new UTF8Encoding(true).GetBytes(middleRow.AppendLine().ToString());
+                    stream.Write(text, 0, text.Length);
+
+                    text = new UTF8Encoding(true).GetBytes(lowerRow.AppendLine().ToString());
+                    stream.Write(text, 0, text.Length);
+
+                    upperRow.Clear();
+                    middleRow.Clear();
+                    lowerRow.Clear();
                 }
             }
-
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < rows * 3; i++)
-            {
-                for (int j = 0; j < cols * 3; j++)
-                {
-                    sb.Append(textMaze[i, j]);
-                }
-                sb.AppendLine();
-            }
-
-            File.WriteAllText(Environment.CurrentDirectory +  @"\maze.txt", sb.ToString());
         }
     }
 }
